@@ -91,7 +91,7 @@
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.92);
+            background: rgba(255, 255, 255, 0.94);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
@@ -117,36 +117,36 @@
                 <i class="fa-solid fa-gift text-3xl"></i>
             </div>
             <h1 class="text-4xl sm:text-5xl font-extrabold text-white font-display tracking-wide drop-shadow-md">
-                Secret Santa <span class="text-santa-gold">Live Sync</span>
+                Secret Santa <span class="text-santa-gold">Link Generator</span>
             </h1>
             <p class="text-slate-200 mt-1 text-sm sm:text-base font-light">
-                Share a single link to organize, set rules, and draw together in real time!
+                Add participants & rules, run the draw, and share a single self-contained link!
             </p>
         </header>
 
-        <!-- Room Header / Share Bar -->
+        <!-- Link Share Bar -->
         <div id="room-bar" class="glass-card rounded-2xl p-4 mb-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 border border-white/40">
             <div class="flex items-center gap-3 w-full sm:w-auto">
                 <div class="bg-emerald-500/10 text-emerald-600 p-2.5 rounded-xl border border-emerald-500/20">
-                    <i class="fa-solid fa-signal text-lg animate-pulse"></i>
+                    <i class="fa-solid fa-link text-lg"></i>
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <span class="text-xs uppercase font-bold tracking-wider text-slate-500">Group Code:</span>
-                        <span id="display-room-id" class="font-mono font-bold text-santa-red text-base bg-red-50 px-2 py-0.5 rounded border border-red-200">------</span>
+                        <span class="text-xs uppercase font-bold tracking-wider text-slate-500">Group Status:</span>
+                        <span id="sync-status-badge" class="font-semibold text-xs text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">Standalone & Shareable</span>
                     </div>
                     <span id="sync-status" class="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                        <span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Connecting to cloud...
+                        <i class="fa-solid fa-cloud-arrow-up text-santa-mint"></i> Everything stores inside your shared link.
                     </span>
                 </div>
             </div>
 
             <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <button onclick="copyGroupLink()" class="flex-1 sm:flex-initial bg-santa-red hover:bg-santa-darkred text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition-all flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-share-nodes"></i> Copy Invite Link
+                    <i class="fa-solid fa-share-nodes"></i> Shareable Link
                 </button>
-                <button onclick="promptJoinNewGroup()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-2.5 rounded-xl shadow transition-all flex items-center justify-center gap-1.5" title="Switch or Create Group">
-                    <i class="fa-solid fa-arrows-rotate"></i> Change Group
+                <button onclick="resetGroupState()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-2.5 rounded-xl shadow transition-all flex items-center justify-center gap-1.5" title="Start Fresh Group">
+                    <i class="fa-solid fa-plus-circle"></i> New Drawing
                 </button>
             </div>
         </div>
@@ -208,7 +208,7 @@
                         </h2>
                         <span class="text-xs text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">Optional</span>
                     </div>
-                    <p class="text-xs text-slate-500 mb-4">Prevent certain people from drawing each other (e.g. spouses, siblings).</p>
+                    <p class="text-xs text-slate-500 mb-4">Prevent certain people from drawing each other (e.g. spouses, partners, siblings).</p>
 
                     <form onsubmit="handleAddExclusion(event)" class="flex flex-col sm:flex-row gap-2 mb-4">
                         <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -246,7 +246,7 @@
                 <!-- View Mode Toggle Buttons -->
                 <div class="flex justify-center bg-slate-100 p-1.5 rounded-2xl max-w-md mx-auto border border-slate-200">
                     <button id="view-btn-reveal" onclick="switchResultView('reveal')" class="flex-1 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm bg-white text-slate-800">
-                        <i class="fa-solid fa-mobile-screen-button mr-1 text-santa-red"></i> Participant Reveal Cards
+                        <i class="fa-solid fa-mobile-screen-button mr-1 text-santa-red"></i> Secret Reveal Mode
                     </button>
                     <button id="view-btn-master" onclick="switchResultView('master')" class="flex-1 py-2 rounded-xl text-sm font-semibold transition-all text-slate-500 hover:text-slate-800">
                         <i class="fa-solid fa-eye mr-1 text-santa-mint"></i> Organizer View
@@ -257,7 +257,7 @@
                 <div id="view-reveal" class="space-y-6">
                     <div class="text-center max-w-lg mx-auto">
                         <h3 class="text-lg font-bold text-slate-700 font-display mb-1">Find Your Secret Santa Assignment</h3>
-                        <p class="text-xs text-slate-500">Click on your name to view your recipient secretly on your own phone or device!</p>
+                        <p class="text-xs text-slate-500">Tap your name to reveal who you got on your device!</p>
                     </div>
 
                     <div id="reveal-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -285,7 +285,7 @@
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                                     <th class="py-3 px-4">Giver (Santa)</th>
-                                    <th class="py-3 px-4"></th>
+                                    <th class="py-3 px-4 text-center"></th>
                                     <th class="py-3 px-4">Receiver (Gift Recipient)</th>
                                 </tr>
                             </thead>
@@ -312,7 +312,7 @@
 
         <!-- Footer -->
         <footer class="text-center text-slate-400 text-xs">
-            <p><i class="fa-solid fa-snowflake"></i> Secret Santa Live Sync — Powered by Cloud Persistence <i class="fa-solid fa-snowflake"></i></p>
+            <p><i class="fa-solid fa-snowflake"></i> Secret Santa Link Generator — Zero Backend Required <i class="fa-solid fa-snowflake"></i></p>
         </footer>
     </div>
 
@@ -347,7 +347,7 @@
                     <div id="modal-target-name" class="text-3xl font-extrabold text-santa-gold font-display tracking-wide animate-bounce">
                         Bob
                     </div>
-                    <p class="text-xs text-emerald-400 mt-2"><i class="fa-solid fa-circle-check"></i> Memorize it!</p>
+                    <p class="text-xs text-emerald-400 mt-2"><i class="fa-solid fa-circle-check"></i> Memorize or write it down!</p>
                 </div>
             </div>
 
@@ -370,179 +370,109 @@
         </div>
     </div>
 
-    <!-- FIREBASE SYNCHRONIZATION SCRIPT -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- HOW LINK SHARING WORKS MODAL -->
+    <div id="info-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl relative text-slate-700">
+            <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xl mb-3">
+                <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <h3 class="text-xl font-bold font-display text-slate-800 mb-2">How Share Links Work</h3>
+            <p class="text-xs text-slate-600 leading-relaxed mb-4">
+                This Secret Santa app is <strong>100% serverless</strong>. All names, rules, and drawn assignments are encoded safely into the website link itself.
+            </p>
+            <div class="bg-slate-50 p-3 rounded-xl text-xs space-y-2 border border-slate-200 mb-4">
+                <div class="flex items-start gap-2">
+                    <i class="fa-solid fa-1 text-santa-red font-bold mt-0.5"></i>
+                    <span>Set up your names & rules or perform the draw.</span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <i class="fa-solid fa-2 text-santa-red font-bold mt-0.5"></i>
+                    <span>Click <strong>Shareable Link</strong> to copy the current setup.</span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <i class="fa-solid fa-3 text-santa-red font-bold mt-0.5"></i>
+                    <span>Send the link to your group. Anyone who opens it gets the exact same drawing!</span>
+                </div>
+            </div>
+            <button onclick="toggleInfoModal(false)" class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-sm shadow">Got it!</button>
+        </div>
+    </div>
 
-        // Firebase Configuration Setup
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'secret-santa-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : {
-                apiKey: "demo-key",
-                authDomain: "demo-project.firebaseapp.com",
-                projectId: "demo-project",
-                storageBucket: "demo-project.appspot.com",
-                messagingSenderId: "123456789",
-                appId: "1:123456789:web:123456789"
-            };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // Application Global State
-        let currentUser = null;
-        let groupId = getGroupIdFromUrl() || generateRoomId();
-        let groupDocRef = null;
-        let unsubscribeGroupListener = null;
-
-        // Shared Group State synced with cloud
+    <!-- APPLICATION STATE & SERIALIZATION ENGINE -->
+    <script>
+        // Global state object
         window.groupState = {
             participants: ['Alice', 'Bob', 'Charlie', 'Diana', 'Ethan'],
             exclusions: [],
-            assignments: null,
-            updatedAt: Date.now()
+            assignments: null
         };
 
-        // Extract Room Code / Group ID from URL hash or search params
-        function getGroupIdFromUrl() {
-            const hash = window.location.hash.replace('#', '').trim();
-            if (hash.length > 0) return hash;
-            const params = new URLSearchParams(window.location.search);
-            return params.get('group') || null;
-        }
-
-        function generateRoomId() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
-        }
-
-        // --- AUTH & SYNC INITIALIZATION ---
-        async function initAuthAndSync() {
+        // --- URL SERIALIZATION UTILITIES ---
+        function encodeStateToUrl() {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                const jsonStr = JSON.stringify(window.groupState);
+                const encoded = btoa(encodeURIComponent(jsonStr));
+                window.location.hash = `data=${encoded}`;
             } catch (err) {
-                console.warn("Auth initialization fallback:", err);
-            }
-
-            onAuthStateChanged(auth, (user) => {
-                currentUser = user;
-                if (user) {
-                    setGroupId(groupId);
-                }
-            });
-        }
-
-        function updateSyncStatus(connected, text) {
-            const statusElem = document.getElementById('sync-status');
-            if (!statusElem) return;
-
-            if (connected) {
-                statusElem.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-ping"></span> <span class="text-emerald-700 font-medium">Live Synced</span>`;
-            } else {
-                statusElem.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> ${text || 'Connecting...'}`;
+                console.error("Encoding error:", err);
             }
         }
 
-        function setGroupId(newGroupId) {
-            groupId = newGroupId.toUpperCase();
-            window.location.hash = groupId;
-            document.getElementById('display-room-id').textContent = groupId;
+        function decodeStateFromUrl() {
+            const hash = window.location.hash.substring(1);
+            if (!hash || !hash.startsWith('data=')) return false;
 
-            // Strict Firestore Path Rule Compliant
-            groupDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'groups', groupId);
+            try {
+                const encoded = hash.replace('data=', '');
+                const jsonStr = decodeURIComponent(atob(encoded));
+                const parsed = JSON.parse(jsonStr);
 
-            if (unsubscribeGroupListener) {
-                unsubscribeGroupListener();
-            }
-
-            // Real-time Listener for Group state changes
-            unsubscribeGroupListener = onSnapshot(groupDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
+                if (parsed && Array.isArray(parsed.participants)) {
                     window.groupState = {
-                        participants: data.participants || [],
-                        exclusions: data.exclusions || [],
-                        assignments: data.assignments || null,
-                        updatedAt: data.updatedAt || Date.now()
+                        participants: parsed.participants || [],
+                        exclusions: parsed.exclusions || [],
+                        assignments: parsed.assignments || null
                     };
-                    updateSyncStatus(true);
-                } else {
-                    // Create default initial room if it doesn't exist
-                    pushGroupStateToCloud(window.groupState);
-                    updateSyncStatus(true);
+                    return true;
                 }
-                
-                // Refresh UI components
-                renderParticipants();
-                renderExclusionDropdowns();
-                renderExclusionList();
-                
-                if (window.groupState.assignments) {
-                    const tabBtnResults = document.getElementById('tab-btn-results');
-                    tabBtnResults.disabled = false;
-                    tabBtnResults.classList.remove('text-slate-400');
-                    tabBtnResults.classList.add('text-slate-700');
-                    renderResultsView();
-                } else {
-                    const tabBtnResults = document.getElementById('tab-btn-results');
-                    tabBtnResults.disabled = true;
-                    switchTab('setup');
-                }
-            }, (error) => {
-                console.error("Firestore Listen Error:", error);
-                updateSyncStatus(false, "Offline mode");
-            });
-        }
-
-        // Push state update to cloud
-        async function pushGroupStateToCloud(newState) {
-            if (!groupDocRef || !auth.currentUser) return;
-            try {
-                const payload = {
-                    ...newState,
-                    updatedAt: Date.now()
-                };
-                await setDoc(groupDocRef, payload, { merge: true });
             } catch (err) {
-                console.error("Failed to push group state to cloud:", err);
+                console.warn("Could not parse hash data, using defaults:", err);
+            }
+            return false;
+        }
+
+        function resetGroupState() {
+            if (confirm("Start a new Secret Santa drawing? This will clear current names and rules.")) {
+                window.groupState = {
+                    participants: [],
+                    exclusions: [],
+                    assignments: null
+                };
+                window.location.hash = '';
+                renderAll();
+                switchTab('setup');
+                showToast('Started fresh! Add participants to begin.', 'info');
             }
         }
 
-        // Attach global helpers to window
-        window.pushGroupStateToCloud = pushGroupStateToCloud;
-        window.promptJoinNewGroup = function() {
-            const code = prompt("Enter a 6-character Secret Santa Group Code or leave blank to create a new one:", groupId);
-            if (code !== null) {
-                const targetCode = code.trim() || generateRoomId();
-                setGroupId(targetCode);
-                showToast(`Switched to Group: <b>${targetCode.toUpperCase()}</b>`, 'info');
-            }
-        };
-
-        window.copyGroupLink = function() {
-            const url = `${window.location.origin}${window.location.pathname}#${groupId}`;
+        function copyGroupLink() {
+            encodeStateToUrl();
+            const fullUrl = window.location.href;
+            
             const dummy = document.createElement("textarea");
             document.body.appendChild(dummy);
-            dummy.value = url;
+            dummy.value = fullUrl;
             dummy.select();
             document.execCommand("copy");
             document.body.removeChild(dummy);
-            showToast(`<i class="fa-solid fa-circle-check text-emerald-600"></i> Group invite link copied to clipboard! Share it with your friends.`, 'success');
-        };
 
-        // Start Auth & Firestore Listeners
-        initAuthAndSync();
-    </script>
+            showToast('<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> <b>Link copied to clipboard!</b> Share this URL with your group so everyone sees the exact same draw.', 'success');
+        }
 
-    <!-- CORE APPLICATION INTERACTIVE LOGIC -->
-    <script>
+        function toggleInfoModal(show) {
+            document.getElementById('info-modal').classList.toggle('hidden', !show);
+        }
+
         // --- UI TOAST MESSAGES ---
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
@@ -577,23 +507,22 @@
                 return;
             }
 
-            const updatedParticipants = [...participants, name];
-            window.groupState.participants = updatedParticipants;
-            window.pushGroupStateToCloud(window.groupState);
+            window.groupState.participants.push(name);
+            window.groupState.assignments = null; // Reset draw if modified
+            encodeStateToUrl();
 
             input.value = '';
+            renderAll();
             dismissToast();
         }
 
         function removeParticipant(name) {
-            const participants = (window.groupState.participants || []).filter(p => p !== name);
-            const exclusions = (window.groupState.exclusions || []).filter(e => e.personA !== name && e.personB !== name);
-            
-            window.groupState.participants = participants;
-            window.groupState.exclusions = exclusions;
-            window.groupState.assignments = null; // Clear old assignments if members change
+            window.groupState.participants = window.groupState.participants.filter(p => p !== name);
+            window.groupState.exclusions = window.groupState.exclusions.filter(e => e.personA !== name && e.personB !== name);
+            window.groupState.assignments = null;
 
-            window.pushGroupStateToCloud(window.groupState);
+            encodeStateToUrl();
+            renderAll();
         }
 
         function renderParticipants() {
@@ -633,22 +562,23 @@
                 .map(n => n.trim())
                 .filter(n => n.length > 0);
 
-            const participants = [...(window.groupState.participants || [])];
             let addedCount = 0;
-
             names.forEach(name => {
-                if (!participants.some(p => p.toLowerCase() === name.toLowerCase())) {
-                    participants.push(name);
+                if (!window.groupState.participants.some(p => p.toLowerCase() === name.toLowerCase())) {
+                    window.groupState.participants.push(name);
                     addedCount++;
                 }
             });
 
-            window.groupState.participants = participants;
-            window.pushGroupStateToCloud(window.groupState);
+            if (addedCount > 0) {
+                window.groupState.assignments = null;
+                encodeStateToUrl();
+                renderAll();
+                showToast(`Added ${addedCount} new participant(s)!`, 'success');
+            }
 
             document.getElementById('bulk-names-input').value = '';
             toggleBulkModal(false);
-            showToast(`Added ${addedCount} new participant(s)!`, 'success');
         }
 
         // --- EXCLUSION RULES ---
@@ -680,7 +610,6 @@
             }
 
             const exclusions = window.groupState.exclusions || [];
-
             const exists = exclusions.some(rule => 
                 (rule.personA === personA && rule.personB === personB) ||
                 (rule.personA === personB && rule.personB === personA)
@@ -691,20 +620,21 @@
                 return;
             }
 
-            const updatedExclusions = [...exclusions, { id: Date.now(), personA, personB }];
-            window.groupState.exclusions = updatedExclusions;
-            window.pushGroupStateToCloud(window.groupState);
+            window.groupState.exclusions.push({ id: Date.now(), personA, personB });
+            window.groupState.assignments = null;
+            encodeStateToUrl();
 
             document.getElementById('excl-person-a').value = '';
             document.getElementById('excl-person-b').value = '';
-
+            renderAll();
             dismissToast();
         }
 
         function removeExclusion(id) {
-            const exclusions = (window.groupState.exclusions || []).filter(e => e.id !== id);
-            window.groupState.exclusions = exclusions;
-            window.pushGroupStateToCloud(window.groupState);
+            window.groupState.exclusions = window.groupState.exclusions.filter(e => e.id !== id);
+            window.groupState.assignments = null;
+            encodeStateToUrl();
+            renderAll();
         }
 
         function renderExclusionList() {
@@ -788,15 +718,15 @@
             }
 
             window.groupState.assignments = assignments;
-            window.pushGroupStateToCloud(window.groupState);
+            encodeStateToUrl();
 
-            // Trigger celebration
             confetti({
                 particleCount: 90,
                 spread: 70,
                 origin: { y: 0.6 }
             });
 
+            renderAll();
             switchTab('results');
         }
 
@@ -846,9 +776,19 @@
         // --- RENDER RESULTS ---
         function renderResultsView() {
             const assignments = window.groupState.assignments;
-            if (!assignments) return;
+            const tabBtnResults = document.getElementById('tab-btn-results');
 
-            // 1. Render Pass-The-Device / Private Access Cards
+            if (!assignments) {
+                tabBtnResults.disabled = true;
+                tabBtnResults.classList.add('text-slate-400');
+                return;
+            }
+
+            tabBtnResults.disabled = false;
+            tabBtnResults.classList.remove('text-slate-400');
+            tabBtnResults.classList.add('text-slate-700');
+
+            // 1. Render Pass-The-Device / Private Cards
             const cardsGrid = document.getElementById('reveal-cards-grid');
             cardsGrid.innerHTML = Object.keys(assignments).map(giver => `
                 <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
@@ -858,7 +798,7 @@
                         </div>
                         <div>
                             <span class="font-bold text-slate-800 block text-base">${escapeHtml(giver)}</span>
-                            <span class="text-xs text-slate-400">Tap to reveal recipient</span>
+                            <span class="text-xs text-slate-400">Tap to reveal target</span>
                         </div>
                     </div>
                     <button onclick="openRevealModal('${escapeHtml(giver)}')" class="bg-santa-red hover:bg-santa-darkred text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition-all flex items-center gap-1.5">
@@ -943,8 +883,24 @@
             });
         }
 
-        // Snowfall background setup
+        function renderAll() {
+            renderParticipants();
+            renderExclusionDropdowns();
+            renderExclusionList();
+            renderResultsView();
+        }
+
+        // Snowfall background & initialization
         window.addEventListener('DOMContentLoaded', () => {
+            const loadedFromHash = decodeStateFromUrl();
+            renderAll();
+
+            if (loadedFromHash && window.groupState.assignments) {
+                switchTab('results');
+                showToast('Loaded shared Secret Santa draw from URL link!', 'success');
+            }
+
+            // Create snowfall elements
             const container = document.getElementById('snow-container');
             const flakeCount = 35;
             const symbols = ['❄', '❅', '❆', '•'];
