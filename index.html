@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Festive Secret Santa Generator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        santa: {
+                            red: '#D42426',
+                            darkred: '#9B1B1C',
+                            green: '#165B33',
+                            mint: '#1B9AAA',
+                            gold: '#F8B229',
+                            cream: '#FBF5F0',
+                            snow: '#F4F7F6'
+                        }
+                    },
+                    fontFamily: {
+                        display: ['Fredoka', 'sans-serif'],
+                        body: ['Outfit', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            min-height: 100vh;
+        }
+
+        /* Snowfall effect container */
+        #snow-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .snowflake {
+            position: absolute;
+            top: -10px;
+            color: rgba(255, 255, 255, 0.7);
+            user-select: none;
+            animation-name: fall;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-10px) rotate(0deg);
+            }
+            100% {
+                transform: translateY(105vh) rotate(360deg);
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(212, 36, 38, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(212, 36, 38, 0.8);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .badge-chip {
+            transition: all 0.2s ease;
+        }
+        .badge-chip:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="text-slate-800 relative pb-12">
+    <!-- Snowflakes Layer -->
+    <div id="snow-container"></div>
+
+    <!-- Main App Container -->
+    <div class="relative z-10 max-w-4xl mx-auto px-4 pt-6">
+        
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <div class="inline-flex items-center justify-center p-3 bg-red-600 text-white rounded-full shadow-lg mb-2">
+                <i class="fa-solid fa-gift text-3xl"></i>
+            </div>
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-white font-display tracking-wide drop-shadow-md">
+                Secret Santa <span class="text-santa-gold">Live Sync</span>
+            </h1>
+            <p class="text-slate-200 mt-1 text-sm sm:text-base font-light">
+                Share a single link to organize, set rules, and draw together in real time!
+            </p>
+        </header>
+
+        <!-- Room Header / Share Bar -->
+        <div id="room-bar" class="glass-card rounded-2xl p-4 mb-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 border border-white/40">
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <div class="bg-emerald-500/10 text-emerald-600 p-2.5 rounded-xl border border-emerald-500/20">
+                    <i class="fa-solid fa-signal text-lg animate-pulse"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs uppercase font-bold tracking-wider text-slate-500">Group Code:</span>
+                        <span id="display-room-id" class="font-mono font-bold text-santa-red text-base bg-red-50 px-2 py-0.5 rounded border border-red-200">------</span>
+                    </div>
+                    <span id="sync-status" class="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Connecting to cloud...
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button onclick="copyGroupLink()" class="flex-1 sm:flex-initial bg-santa-red hover:bg-santa-darkred text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-share-nodes"></i> Copy Invite Link
+                </button>
+                <button onclick="promptJoinNewGroup()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-2.5 rounded-xl shadow transition-all flex items-center justify-center gap-1.5" title="Switch or Create Group">
+                    <i class="fa-solid fa-arrows-rotate"></i> Change Group
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Card -->
+        <div class="glass-card rounded-3xl shadow-2xl p-6 sm:p-8 mb-8">
+            
+            <!-- Tab Navigation -->
+            <div class="flex border-b border-slate-200 mb-6 font-display">
+                <button id="tab-btn-setup" onclick="switchTab('setup')" class="flex-1 py-3 text-center border-b-4 border-santa-red font-bold text-santa-red text-lg flex items-center justify-center gap-2 transition-all">
+                    <i class="fa-solid fa-users-gear"></i> 1. Setup & Rules
+                </button>
+                <button id="tab-btn-results" onclick="switchTab('results')" class="flex-1 py-3 text-center border-b-4 border-transparent text-slate-400 font-semibold text-lg flex items-center justify-center gap-2 transition-all hover:text-slate-600" disabled>
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> 2. The Draw
+                </button>
+            </div>
+
+            <!-- Toast / Message Box -->
+            <div id="toast" class="hidden mb-6 p-4 rounded-xl text-sm font-medium transition-all flex items-center justify-between shadow-sm">
+                <span id="toast-message"></span>
+                <button onclick="dismissToast()" class="text-slate-500 hover:text-slate-700 ml-4"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- STEP 1: SETUP TAB -->
+            <div id="tab-setup" class="space-y-8">
+                
+                <!-- Section: Add Participants -->
+                <div>
+                    <h2 class="text-xl font-bold font-display text-slate-800 flex items-center gap-2 mb-3">
+                        <i class="fa-solid fa-user-plus text-santa-red"></i> Add Participants
+                    </h2>
+                    
+                    <form onsubmit="handleAddParticipant(event)" class="flex flex-col sm:flex-row gap-2 mb-4">
+                        <input type="text" id="participant-name" placeholder="Enter name (e.g., Alice)" class="flex-1 px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-santa-red focus:outline-none transition-all text-base" required>
+                        <button type="submit" class="bg-santa-red hover:bg-santa-darkred text-white font-semibold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Add Person
+                        </button>
+                    </form>
+
+                    <!-- Quick Bulk Add Trigger -->
+                    <div class="flex justify-between items-center text-xs text-slate-500 mb-2 px-1">
+                        <span>Participants (<span id="participant-count">0</span>)</span>
+                        <button type="button" onclick="toggleBulkModal(true)" class="text-santa-mint hover:underline font-medium flex items-center gap-1">
+                            <i class="fa-solid fa-file-import"></i> Bulk Import
+                        </button>
+                    </div>
+
+                    <!-- Participant Chips List -->
+                    <div id="participant-list" class="flex flex-wrap gap-2 p-4 bg-slate-50 rounded-2xl border border-slate-200 min-h-[80px] items-center">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Section: Exclusion Rules -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-xl font-bold font-display text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-user-slash text-santa-red"></i> Custom Exclusion Rules
+                        </h2>
+                        <span class="text-xs text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">Optional</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mb-4">Prevent certain people from drawing each other (e.g. spouses, siblings).</p>
+
+                    <form onsubmit="handleAddExclusion(event)" class="flex flex-col sm:flex-row gap-2 mb-4">
+                        <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <select id="excl-person-a" class="px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-santa-red focus:outline-none bg-white text-sm">
+                                <option value="">Select Person 1</option>
+                            </select>
+                            <select id="excl-person-b" class="px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-santa-red focus:outline-none bg-white text-sm">
+                                <option value="">Cannot draw Person 2</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-medium px-5 py-2.5 rounded-xl shadow-md transition-all text-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-ban"></i> Add Rule
+                        </button>
+                    </form>
+
+                    <!-- Exclusion List -->
+                    <div id="exclusion-list" class="space-y-2">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Action Button to Perform Draw -->
+                <div class="pt-4 border-t border-slate-100 text-center">
+                    <button onclick="performSecretDraw()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-display text-xl font-bold px-10 py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-3 mx-auto">
+                        <i class="fa-solid fa-gift"></i> Generate Secret Santa Draw!
+                    </button>
+                    <p id="draw-error" class="text-red-500 text-xs mt-2 font-medium hidden"></p>
+                </div>
+
+            </div>
+
+            <!-- STEP 2: RESULTS TAB -->
+            <div id="tab-results" class="hidden space-y-8">
+                
+                <!-- View Mode Toggle Buttons -->
+                <div class="flex justify-center bg-slate-100 p-1.5 rounded-2xl max-w-md mx-auto border border-slate-200">
+                    <button id="view-btn-reveal" onclick="switchResultView('reveal')" class="flex-1 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm bg-white text-slate-800">
+                        <i class="fa-solid fa-mobile-screen-button mr-1 text-santa-red"></i> Participant Reveal Cards
+                    </button>
+                    <button id="view-btn-master" onclick="switchResultView('master')" class="flex-1 py-2 rounded-xl text-sm font-semibold transition-all text-slate-500 hover:text-slate-800">
+                        <i class="fa-solid fa-eye mr-1 text-santa-mint"></i> Organizer View
+                    </button>
+                </div>
+
+                <!-- VIEW A: PASS THE DEVICE / INDIVIDUAL REVEAL MODE -->
+                <div id="view-reveal" class="space-y-6">
+                    <div class="text-center max-w-lg mx-auto">
+                        <h3 class="text-lg font-bold text-slate-700 font-display mb-1">Find Your Secret Santa Assignment</h3>
+                        <p class="text-xs text-slate-500">Click on your name to view your recipient secretly on your own phone or device!</p>
+                    </div>
+
+                    <div id="reveal-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Individual participant reveal cards generated by JS -->
+                    </div>
+                </div>
+
+                <!-- VIEW B: MASTER ORGANIZER VIEW -->
+                <div id="view-master" class="hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-amber-50 p-4 rounded-2xl border border-amber-200 text-amber-900">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-xl"></i>
+                            <div class="text-xs">
+                                <span class="font-bold block text-sm">Organizer Master List</span>
+                                This list reveals all secret assignments! Keep this hidden from participants.
+                            </div>
+                        </div>
+                        <button onclick="copyResultsToClipboard()" class="w-full sm:w-auto text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2.5 rounded-xl shadow transition-all flex items-center justify-center gap-2 whitespace-nowrap">
+                            <i class="fa-solid fa-copy"></i> Copy All Matches
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    <th class="py-3 px-4">Giver (Santa)</th>
+                                    <th class="py-3 px-4"></th>
+                                    <th class="py-3 px-4">Receiver (Gift Recipient)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="master-table-body" class="divide-y divide-slate-100 text-sm font-medium">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Reset / Redraw Bar -->
+                <div class="pt-6 border-t border-slate-100 flex flex-wrap justify-between items-center gap-4">
+                    <button onclick="performSecretDraw()" class="text-slate-600 hover:text-santa-red text-sm font-semibold flex items-center gap-2 transition-colors">
+                        <i class="fa-solid fa-rotate-right"></i> Redraw Assignments
+                    </button>
+                    <button onclick="switchTab('setup')" class="text-santa-mint hover:underline text-sm font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-pen-to-square"></i> Modify Participants / Rules
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center text-slate-400 text-xs">
+            <p><i class="fa-solid fa-snowflake"></i> Secret Santa Live Sync — Powered by Cloud Persistence <i class="fa-solid fa-snowflake"></i></p>
+        </footer>
+    </div>
+
+    <!-- REVEAL MODAL (FOR PASS-THE-DEVICE / PRIVATE ACCESS) -->
+    <div id="reveal-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center relative animate-fade-in border-4 border-santa-red">
+            <button onclick="closeRevealModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg w-8 h-8 rounded-full flex items-center justify-center bg-slate-100">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-santa-red text-2xl mx-auto mb-4">
+                <i class="fa-solid fa-user-secret"></i>
+            </div>
+
+            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Secret Santa Assignment</h3>
+            <h2 id="modal-giver-name" class="text-2xl font-extrabold text-slate-800 font-display mb-6">Alice</h2>
+
+            <!-- Hidden / Secret Scratch Card Area -->
+            <div class="bg-slate-900 rounded-2xl p-6 text-white mb-6 relative overflow-hidden shadow-inner">
+                <p class="text-xs text-slate-400 mb-2">You are buying a gift for:</p>
+
+                <!-- Hidden State Layer -->
+                <div id="modal-hidden-state" class="py-4">
+                    <p class="text-amber-400 text-xs mb-3 font-medium">Make sure no one else is looking at your screen!</p>
+                    <button onclick="revealSecretTarget()" class="bg-santa-red hover:bg-santa-darkred text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mx-auto">
+                        <i class="fa-solid fa-eye"></i> Tap to Reveal Name
+                    </button>
+                </div>
+
+                <!-- Revealed State Layer -->
+                <div id="modal-revealed-state" class="hidden py-2">
+                    <div id="modal-target-name" class="text-3xl font-extrabold text-santa-gold font-display tracking-wide animate-bounce">
+                        Bob
+                    </div>
+                    <p class="text-xs text-emerald-400 mt-2"><i class="fa-solid fa-circle-check"></i> Memorize it!</p>
+                </div>
+            </div>
+
+            <button onclick="closeRevealModal()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl shadow transition-all text-sm">
+                <i class="fa-solid fa-lock mr-2"></i> Hide & Close Card
+            </button>
+        </div>
+    </div>
+
+    <!-- BULK IMPORT MODAL -->
+    <div id="bulk-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl relative">
+            <h3 class="text-lg font-bold font-display text-slate-800 mb-2">Bulk Import Names</h3>
+            <p class="text-xs text-slate-500 mb-4">Paste multiple names separated by commas or new lines.</p>
+            <textarea id="bulk-names-input" rows="6" placeholder="Alice&#10;Bob&#10;Charlie, David" class="w-full p-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-santa-red focus:outline-none mb-4 font-mono"></textarea>
+            <div class="flex justify-end gap-2">
+                <button onclick="toggleBulkModal(false)" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-sm font-medium">Cancel</button>
+                <button onclick="handleBulkImport()" class="px-5 py-2 rounded-xl bg-santa-red hover:bg-santa-darkred text-white text-sm font-bold shadow">Import Names</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FIREBASE SYNCHRONIZATION SCRIPT -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration Setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'secret-santa-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "demo-key",
+                authDomain: "demo-project.firebaseapp.com",
+                projectId: "demo-project",
+                storageBucket: "demo-project.appspot.com",
+                messagingSenderId: "123456789",
+                appId: "1:123456789:web:123456789"
+            };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Application Global State
+        let currentUser = null;
+        let groupId = getGroupIdFromUrl() || generateRoomId();
+        let groupDocRef = null;
+        let unsubscribeGroupListener = null;
+
+        // Shared Group State synced with cloud
+        window.groupState = {
+            participants: ['Alice', 'Bob', 'Charlie', 'Diana', 'Ethan'],
+            exclusions: [],
+            assignments: null,
+            updatedAt: Date.now()
+        };
+
+        // Extract Room Code / Group ID from URL hash or search params
+        function getGroupIdFromUrl() {
+            const hash = window.location.hash.replace('#', '').trim();
+            if (hash.length > 0) return hash;
+            const params = new URLSearchParams(window.location.search);
+            return params.get('group') || null;
+        }
+
+        function generateRoomId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        // --- AUTH & SYNC INITIALIZATION ---
+        async function initAuthAndSync() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.warn("Auth initialization fallback:", err);
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                if (user) {
+                    setGroupId(groupId);
+                }
+            });
+        }
+
+        function updateSyncStatus(connected, text) {
+            const statusElem = document.getElementById('sync-status');
+            if (!statusElem) return;
+
+            if (connected) {
+                statusElem.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-ping"></span> <span class="text-emerald-700 font-medium">Live Synced</span>`;
+            } else {
+                statusElem.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> ${text || 'Connecting...'}`;
+            }
+        }
+
+        function setGroupId(newGroupId) {
+            groupId = newGroupId.toUpperCase();
+            window.location.hash = groupId;
+            document.getElementById('display-room-id').textContent = groupId;
+
+            // Strict Firestore Path Rule Compliant
+            groupDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'groups', groupId);
+
+            if (unsubscribeGroupListener) {
+                unsubscribeGroupListener();
+            }
+
+            // Real-time Listener for Group state changes
+            unsubscribeGroupListener = onSnapshot(groupDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    window.groupState = {
+                        participants: data.participants || [],
+                        exclusions: data.exclusions || [],
+                        assignments: data.assignments || null,
+                        updatedAt: data.updatedAt || Date.now()
+                    };
+                    updateSyncStatus(true);
+                } else {
+                    // Create default initial room if it doesn't exist
+                    pushGroupStateToCloud(window.groupState);
+                    updateSyncStatus(true);
+                }
+                
+                // Refresh UI components
+                renderParticipants();
+                renderExclusionDropdowns();
+                renderExclusionList();
+                
+                if (window.groupState.assignments) {
+                    const tabBtnResults = document.getElementById('tab-btn-results');
+                    tabBtnResults.disabled = false;
+                    tabBtnResults.classList.remove('text-slate-400');
+                    tabBtnResults.classList.add('text-slate-700');
+                    renderResultsView();
+                } else {
+                    const tabBtnResults = document.getElementById('tab-btn-results');
+                    tabBtnResults.disabled = true;
+                    switchTab('setup');
+                }
+            }, (error) => {
+                console.error("Firestore Listen Error:", error);
+                updateSyncStatus(false, "Offline mode");
+            });
+        }
+
+        // Push state update to cloud
+        async function pushGroupStateToCloud(newState) {
+            if (!groupDocRef || !auth.currentUser) return;
+            try {
+                const payload = {
+                    ...newState,
+                    updatedAt: Date.now()
+                };
+                await setDoc(groupDocRef, payload, { merge: true });
+            } catch (err) {
+                console.error("Failed to push group state to cloud:", err);
+            }
+        }
+
+        // Attach global helpers to window
+        window.pushGroupStateToCloud = pushGroupStateToCloud;
+        window.promptJoinNewGroup = function() {
+            const code = prompt("Enter a 6-character Secret Santa Group Code or leave blank to create a new one:", groupId);
+            if (code !== null) {
+                const targetCode = code.trim() || generateRoomId();
+                setGroupId(targetCode);
+                showToast(`Switched to Group: <b>${targetCode.toUpperCase()}</b>`, 'info');
+            }
+        };
+
+        window.copyGroupLink = function() {
+            const url = `${window.location.origin}${window.location.pathname}#${groupId}`;
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = url;
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
+            showToast(`<i class="fa-solid fa-circle-check text-emerald-600"></i> Group invite link copied to clipboard! Share it with your friends.`, 'success');
+        };
+
+        // Start Auth & Firestore Listeners
+        initAuthAndSync();
+    </script>
+
+    <!-- CORE APPLICATION INTERACTIVE LOGIC -->
+    <script>
+        // --- UI TOAST MESSAGES ---
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            
+            toast.className = `mb-6 p-4 rounded-xl text-sm font-medium transition-all flex items-center justify-between shadow-sm ${
+                type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
+                type === 'success' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                'bg-blue-100 text-blue-800 border border-blue-200'
+            }`;
+            
+            toastMsg.innerHTML = message;
+            toast.classList.remove('hidden');
+        }
+
+        function dismissToast() {
+            document.getElementById('toast').classList.add('hidden');
+        }
+
+        // --- PARTICIPANT MANAGEMENT ---
+        function handleAddParticipant(e) {
+            e.preventDefault();
+            const input = document.getElementById('participant-name');
+            const name = input.value.trim();
+
+            if (!name) return;
+
+            const participants = window.groupState.participants || [];
+
+            if (participants.some(p => p.toLowerCase() === name.toLowerCase())) {
+                showToast(`<b>${name}</b> is already in the participant list!`, 'error');
+                return;
+            }
+
+            const updatedParticipants = [...participants, name];
+            window.groupState.participants = updatedParticipants;
+            window.pushGroupStateToCloud(window.groupState);
+
+            input.value = '';
+            dismissToast();
+        }
+
+        function removeParticipant(name) {
+            const participants = (window.groupState.participants || []).filter(p => p !== name);
+            const exclusions = (window.groupState.exclusions || []).filter(e => e.personA !== name && e.personB !== name);
+            
+            window.groupState.participants = participants;
+            window.groupState.exclusions = exclusions;
+            window.groupState.assignments = null; // Clear old assignments if members change
+
+            window.pushGroupStateToCloud(window.groupState);
+        }
+
+        function renderParticipants() {
+            const container = document.getElementById('participant-list');
+            const countLabel = document.getElementById('participant-count');
+            const participants = window.groupState.participants || [];
+            
+            countLabel.textContent = participants.length;
+
+            if (participants.length === 0) {
+                container.innerHTML = `<span class="text-slate-400 text-sm italic">No participants added yet. Add at least 2 people to draw!</span>`;
+                return;
+            }
+
+            container.innerHTML = participants.map(name => `
+                <span class="badge-chip inline-flex items-center gap-1.5 bg-white text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm text-sm font-medium">
+                    <i class="fa-solid fa-user text-santa-red text-xs"></i>
+                    ${escapeHtml(name)}
+                    <button onclick="removeParticipant('${escapeHtml(name)}')" class="text-slate-400 hover:text-red-500 ml-1 font-bold">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                </span>
+            `).join('');
+        }
+
+        // --- BULK IMPORT ---
+        function toggleBulkModal(show) {
+            document.getElementById('bulk-modal').classList.toggle('hidden', !show);
+        }
+
+        function handleBulkImport() {
+            const rawText = document.getElementById('bulk-names-input').value;
+            if (!rawText.trim()) return;
+
+            const names = rawText
+                .split(/[\n,]+/)
+                .map(n => n.trim())
+                .filter(n => n.length > 0);
+
+            const participants = [...(window.groupState.participants || [])];
+            let addedCount = 0;
+
+            names.forEach(name => {
+                if (!participants.some(p => p.toLowerCase() === name.toLowerCase())) {
+                    participants.push(name);
+                    addedCount++;
+                }
+            });
+
+            window.groupState.participants = participants;
+            window.pushGroupStateToCloud(window.groupState);
+
+            document.getElementById('bulk-names-input').value = '';
+            toggleBulkModal(false);
+            showToast(`Added ${addedCount} new participant(s)!`, 'success');
+        }
+
+        // --- EXCLUSION RULES ---
+        function renderExclusionDropdowns() {
+            const selA = document.getElementById('excl-person-a');
+            const selB = document.getElementById('excl-person-b');
+            const participants = window.groupState.participants || [];
+
+            const optionsHTML = `<option value="">Select Person</option>` + 
+                participants.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+
+            selA.innerHTML = optionsHTML;
+            selB.innerHTML = optionsHTML;
+        }
+
+        function handleAddExclusion(e) {
+            e.preventDefault();
+            const personA = document.getElementById('excl-person-a').value;
+            const personB = document.getElementById('excl-person-b').value;
+
+            if (!personA || !personB) {
+                showToast('Please select both participants to create an exclusion rule.', 'error');
+                return;
+            }
+
+            if (personA === personB) {
+                showToast('A person already cannot draw themselves!', 'error');
+                return;
+            }
+
+            const exclusions = window.groupState.exclusions || [];
+
+            const exists = exclusions.some(rule => 
+                (rule.personA === personA && rule.personB === personB) ||
+                (rule.personA === personB && rule.personB === personA)
+            );
+
+            if (exists) {
+                showToast('This exclusion rule already exists!', 'error');
+                return;
+            }
+
+            const updatedExclusions = [...exclusions, { id: Date.now(), personA, personB }];
+            window.groupState.exclusions = updatedExclusions;
+            window.pushGroupStateToCloud(window.groupState);
+
+            document.getElementById('excl-person-a').value = '';
+            document.getElementById('excl-person-b').value = '';
+
+            dismissToast();
+        }
+
+        function removeExclusion(id) {
+            const exclusions = (window.groupState.exclusions || []).filter(e => e.id !== id);
+            window.groupState.exclusions = exclusions;
+            window.pushGroupStateToCloud(window.groupState);
+        }
+
+        function renderExclusionList() {
+            const container = document.getElementById('exclusion-list');
+            const exclusions = window.groupState.exclusions || [];
+
+            if (exclusions.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic">No custom exclusion rules added.</p>`;
+                return;
+            }
+
+            container.innerHTML = exclusions.map(rule => `
+                <div class="flex items-center justify-between bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs">
+                    <span class="font-medium text-slate-700">
+                        <i class="fa-solid fa-ban text-red-400 mr-1"></i>
+                        <span class="font-bold">${escapeHtml(rule.personA)}</span> cannot draw <span class="font-bold">${escapeHtml(rule.personB)}</span> (or vice versa)
+                    </span>
+                    <button onclick="removeExclusion(${rule.id})" class="text-slate-400 hover:text-red-500 font-bold">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // --- DERANGEMENT SHUFFLE ALGORITHM ---
+        function solveSecretSanta(givers, exclusionRules) {
+            if (givers.length < 2) return null;
+
+            function isForbidden(giver, receiver) {
+                if (giver === receiver) return true;
+                return exclusionRules.some(rule => 
+                    (rule.personA === giver && rule.personB === receiver) ||
+                    (rule.personA === receiver && rule.personB === giver)
+                );
+            }
+
+            const MAX_ATTEMPTS = 500;
+
+            for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+                let receivers = [...givers];
+                
+                for (let i = receivers.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [receivers[i], receivers[j]] = [receivers[j], receivers[i]];
+                }
+
+                let isValid = true;
+                for (let i = 0; i < givers.length; i++) {
+                    if (isForbidden(givers[i], receivers[i])) {
+                        isValid = false;
+                        break;
+                    }
+                }
+
+                if (isValid) {
+                    const result = {};
+                    givers.forEach((giver, idx) => {
+                        result[giver] = receivers[idx];
+                    });
+                    return result;
+                }
+            }
+
+            return null;
+        }
+
+        function performSecretDraw() {
+            const participants = window.groupState.participants || [];
+            const exclusions = window.groupState.exclusions || [];
+
+            if (participants.length < 2) {
+                showToast('You need at least 2 participants to perform a draw!', 'error');
+                return;
+            }
+
+            const assignments = solveSecretSanta(participants, exclusions);
+
+            if (!assignments) {
+                showToast('<strong>Impossible Rules!</strong> The exclusion rules are too strict to generate a valid Secret Santa draw. Try removing some exclusions.', 'error');
+                return;
+            }
+
+            window.groupState.assignments = assignments;
+            window.pushGroupStateToCloud(window.groupState);
+
+            // Trigger celebration
+            confetti({
+                particleCount: 90,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            switchTab('results');
+        }
+
+        // --- TAB NAVIGATION ---
+        function switchTab(tabName) {
+            const tabSetup = document.getElementById('tab-setup');
+            const tabResults = document.getElementById('tab-results');
+            const btnSetup = document.getElementById('tab-btn-setup');
+            const btnResults = document.getElementById('tab-btn-results');
+
+            if (tabName === 'setup') {
+                tabSetup.classList.remove('hidden');
+                tabResults.classList.add('hidden');
+                
+                btnSetup.className = 'flex-1 py-3 text-center border-b-4 border-santa-red font-bold text-santa-red text-lg flex items-center justify-center gap-2 transition-all';
+                btnResults.className = 'flex-1 py-3 text-center border-b-4 border-transparent text-slate-500 font-semibold text-lg flex items-center justify-center gap-2 transition-all hover:text-slate-700';
+            } else {
+                tabSetup.classList.add('hidden');
+                tabResults.classList.remove('hidden');
+
+                btnResults.className = 'flex-1 py-3 text-center border-b-4 border-santa-red font-bold text-santa-red text-lg flex items-center justify-center gap-2 transition-all';
+                btnSetup.className = 'flex-1 py-3 text-center border-b-4 border-transparent text-slate-500 font-semibold text-lg flex items-center justify-center gap-2 transition-all hover:text-slate-700';
+            }
+        }
+
+        function switchResultView(viewMode) {
+            const viewReveal = document.getElementById('view-reveal');
+            const viewMaster = document.getElementById('view-master');
+            const btnReveal = document.getElementById('view-btn-reveal');
+            const btnMaster = document.getElementById('view-btn-master');
+
+            if (viewMode === 'reveal') {
+                viewReveal.classList.remove('hidden');
+                viewMaster.classList.add('hidden');
+
+                btnReveal.className = 'flex-1 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm bg-white text-slate-800';
+                btnMaster.className = 'flex-1 py-2 rounded-xl text-sm font-semibold transition-all text-slate-500 hover:text-slate-800';
+            } else {
+                viewReveal.classList.add('hidden');
+                viewMaster.classList.remove('hidden');
+
+                btnMaster.className = 'flex-1 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm bg-white text-slate-800';
+                btnReveal.className = 'flex-1 py-2 rounded-xl text-sm font-semibold transition-all text-slate-500 hover:text-slate-800';
+            }
+        }
+
+        // --- RENDER RESULTS ---
+        function renderResultsView() {
+            const assignments = window.groupState.assignments;
+            if (!assignments) return;
+
+            // 1. Render Pass-The-Device / Private Access Cards
+            const cardsGrid = document.getElementById('reveal-cards-grid');
+            cardsGrid.innerHTML = Object.keys(assignments).map(giver => `
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-santa-red font-bold font-display">
+                            ${escapeHtml(giver.charAt(0).toUpperCase())}
+                        </div>
+                        <div>
+                            <span class="font-bold text-slate-800 block text-base">${escapeHtml(giver)}</span>
+                            <span class="text-xs text-slate-400">Tap to reveal recipient</span>
+                        </div>
+                    </div>
+                    <button onclick="openRevealModal('${escapeHtml(giver)}')" class="bg-santa-red hover:bg-santa-darkred text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-eye"></i> View Card
+                    </button>
+                </div>
+            `).join('');
+
+            // 2. Render Organizer Master Table
+            const tableBody = document.getElementById('master-table-body');
+            tableBody.innerHTML = Object.entries(assignments).map(([giver, receiver]) => `
+                <tr class="hover:bg-slate-50">
+                    <td class="py-3 px-4 font-bold text-slate-800">
+                        <i class="fa-solid fa-user-ninja text-santa-red mr-2"></i>${escapeHtml(giver)}
+                    </td>
+                    <td class="py-3 px-4 text-slate-400 text-center">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </td>
+                    <td class="py-3 px-4 font-bold text-emerald-700">
+                        <i class="fa-solid fa-gift text-santa-gold mr-2"></i>${escapeHtml(receiver)}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // --- REVEAL MODAL LOGIC ---
+        function openRevealModal(giver) {
+            const assignments = window.groupState.assignments || {};
+            document.getElementById('modal-giver-name').textContent = giver;
+            document.getElementById('modal-target-name').textContent = assignments[giver] || 'Unknown';
+            
+            document.getElementById('modal-hidden-state').classList.remove('hidden');
+            document.getElementById('modal-revealed-state').classList.add('hidden');
+
+            document.getElementById('reveal-modal').classList.remove('hidden');
+        }
+
+        function revealSecretTarget() {
+            document.getElementById('modal-hidden-state').classList.add('hidden');
+            document.getElementById('modal-revealed-state').classList.remove('hidden');
+            
+            confetti({
+                particleCount: 30,
+                spread: 40,
+                origin: { y: 0.5 }
+            });
+        }
+
+        function closeRevealModal() {
+            document.getElementById('reveal-modal').classList.add('hidden');
+        }
+
+        // --- COPY ALL RESULTS ---
+        function copyResultsToClipboard() {
+            const assignments = window.groupState.assignments;
+            if (!assignments) return;
+
+            let text = "🎄 Secret Santa Assignments 🎄\n\n";
+            Object.entries(assignments).forEach(([giver, receiver]) => {
+                text += `${giver} 🎁 -> ${receiver}\n`;
+            });
+
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
+
+            showToast('<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Copied all Secret Santa pairs to clipboard!', 'success');
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, function(m) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[m];
+            });
+        }
+
+        // Snowfall background setup
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('snow-container');
+            const flakeCount = 35;
+            const symbols = ['❄', '❅', '❆', '•'];
+
+            for (let i = 0; i < flakeCount; i++) {
+                const flake = document.createElement('div');
+                flake.className = 'snowflake';
+                flake.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+                flake.style.left = `${Math.random() * 100}%`;
+                flake.style.opacity = Math.random() * 0.7 + 0.3;
+                flake.style.fontSize = `${Math.random() * 14 + 10}px`;
+                
+                const duration = Math.random() * 8 + 6;
+                const delay = Math.random() * 5;
+                flake.style.animationDuration = `${duration}s`;
+                flake.style.animationDelay = `${delay}s`;
+
+                container.appendChild(flake);
+            }
+        });
+    </script>
+</body>
+</html>
